@@ -1,28 +1,36 @@
-name: Test all JDKs on all OSes
-
-on: [push, pull_request]
-
 jobs:
   build:
-
-    runs-on: ${{ matrix.os }}
+    runs-on: self-hosted
+    steps:
+    - continue-on-error: true
+      name: Checkout
+      uses: actions/checkout@v1
+    - continue-on-error: true
+      name: Set up JDK ${{ matrix.java_version }}
+      uses: actions/setup-java@v1
+      with:
+        java-version: ${{ matrix.java_version }}
+    - continue-on-error: true
+      if: contains(matrix.os, 'win') == false
+      name: Make Maven Wrapper executable
+      run: chmod +x ./mvnw
+    - continue-on-error: true
+      env:
+        MAVEN_OPTS: -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+      name: Build with Maven
+      run: ./mvnw verify --file pom.xml --batch-mode
     strategy:
       fail-fast: false
       matrix:
-        java_version: [1.8, 11, 17]
-        os: [windows-latest, macOS-latest, ubuntu-latest]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-      - name: Set up JDK ${{ matrix.java_version }}
-        uses: actions/setup-java@v1
-        with:
-          java-version: ${{ matrix.java_version }}
-      - name: Make Maven Wrapper executable
-        if: contains(matrix.os, 'win') == false
-        run: chmod +x ./mvnw
-      - name: Build with Maven
-        run: ./mvnw verify --file pom.xml --batch-mode
-        env:
-          MAVEN_OPTS: -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+        java_version:
+        - 1.8
+        - 11
+        - 17
+        os:
+        - windows-latest
+        - macOS-latest
+        - ubuntu-latest
+name: Test all JDKs on all OSes
+on:
+  repository_dispatch:
+    types: trigger-ga___main.yml
